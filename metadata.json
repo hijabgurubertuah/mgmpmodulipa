@@ -1,0 +1,8 @@
+{
+  "name": "Remix MODUL IPA PAK MUS",
+  "description": "Aplikasi modul Belajar IPA SMP MTs Created By : Muslim, S.Pd",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
