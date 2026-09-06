@@ -2,35 +2,49 @@ import { STUDENT_CONFIG } from '../config/studentConfig';
 
 /**
  * Layanan untuk mengambil daftar nama siswa secara dinamis
- * dari Google Spreadsheet yang dipublikasikan sebagai CSV,
- * atau dari cadangan lokal jika tidak ada koneksi.
+ * dari Google Spreadsheet dengan sistem penyimpanan lokal (cache)
+ * agar menghemat kuota internet dan mempercepat proses masuk.
  */
 export const studentService = {
   /**
    * Mengambil nama siswa per kelas.
-   * Format Google Sheet disarankan memiliki kolom pertama: Kelas, kolom kedua: Nama.
+   * @param forceRefresh jika true, memaksa sistem mengunduh ulang dari Google Sheets dan memperbarui cache.
    */
-  getStudents: async (): Promise<Record<string, string[]>> => {
+  getStudents: async (forceRefresh: boolean = false): Promise<Record<string, string[]>> => {
+    // 1. Jika tidak dipaksa segarkan, coba ambil dari penyimpanan lokal (cache) terlebih dahulu
+    if (!forceRefresh) {
+      const cached = localStorage.getItem('ipa_student_database');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Object.keys(parsed).length > 0) {
+            console.log('Memuat daftar siswa dari penyimpanan lokal (Cache) - Hemat Kuota Internet.');
+            return parsed;
+          }
+        } catch (e) {
+          console.error('Gagal memproses cache siswa, mengunduh ulang...', e);
+        }
+      }
+    }
+
+    // 2. Ambil data terbaru dari Google Sheets (jika cache kosong atau tombol Segarkan diklik)
     try {
-      // Endpoint ekspor CSV dari spreadsheet yang dipublikasikan ke web
       const url = STUDENT_CONFIG.csvUrl;
-      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik batas waktu tunggu
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 detik batas waktu tunggu
 
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error('Gagal mengunduh berkas dari Google Sheets');
+        throw new Error('Gagal mengunduh data terbaru dari Google Sheets');
       }
 
       const text = await response.text();
       const lines = text.split(/\r?\n/);
-      
       const data: Record<string, string[]> = {};
 
-      // Proses setiap baris CSV (lewati baris judul pertama jika kolomnya "Kelas" dan "Nama")
+      // Proses penguraian CSV
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
@@ -45,7 +59,7 @@ export const studentService = {
           const rawKelas = parts[0].trim().replace(/^["']|["']$/g, '').toUpperCase();
           const rawNama = parts[1].trim().replace(/^["']|["']$/g, '').toUpperCase();
 
-          // Hindari memasukkan baris tajuk/header tabel
+          // Hindari baris judul/header
           if (
             rawKelas === 'KELAS' || 
             rawNama === 'NAMA' || 
@@ -65,25 +79,36 @@ export const studentService = {
         }
       }
 
-      // Pastikan kelas GURU selalu ada sebagai bypass untuk guru
+      // Pastikan hak akses bypass GURU selalu ada
       if (!data['GURU']) {
         data['GURU'] = ['GURUSMP'];
       } else if (!data['GURU'].includes('GURUSMP')) {
         data['GURU'].push('GURUSMP');
       }
 
-      // Urutkan nama siswa di setiap kelas secara alfabetis
+      // Urutkan nama alfabetis per kelas
       Object.keys(data).forEach((kelas) => {
         data[kelas].sort();
       });
 
-      console.log('Daftar siswa berhasil dimuat secara real-time dari Google Sheets!');
+      // Simpan data terbaru ke dalam cache dan hapus data lama agar tidak bentrok
+      localStorage.setItem('ipa_student_database', JSON.stringify(data));
+      localStorage.setItem('ipa_student_database_last_updated', new Date().toLocaleString('id-ID'));
+
+      console.log('Cache daftar siswa berhasil diperbarui dengan data spreadsheet terbaru.');
       return data;
     } catch (error) {
-      console.warn(
-        'Koneksi offline atau Google Sheet belum di-publish ke web. Menggunakan database lokal fallback:',
-        error
-      );
+      console.warn('Gagal menghubungi Google Sheets. Mencoba memuat cache lama...', error);
+
+      // Jika gagal ambil data baru (misal sedang offline), gunakan cache lama jika ada
+      const cached = localStorage.getItem('ipa_student_database');
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {}
+      }
+
+      // Jika benar-benar kosong, gunakan nama fallback bawaan aplikasi
       return STUDENT_CONFIG.fallbackStudents;
     }
   }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { GardenDecorations } from './GardenDecorations';
 import { studentService } from '../services/studentService';
+import { RefreshCw } from 'lucide-react';
 
 interface LoginProps {
   username: string;
@@ -12,19 +13,49 @@ interface LoginProps {
 }
 
 /**
- * Login component for the name selection dropdown screen.
+ * Login component with caching and force-refresh capabilities.
  */
 export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, setUserClass, onLogin }) => {
   const [studentDatabase, setStudentDatabase] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [refreshSuccess, setRefreshSuccess] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   // Load student list from Google Sheets / Local on mount
   useEffect(() => {
     studentService.getStudents().then((data) => {
       setStudentDatabase(data);
       setLoading(false);
+      
+      const savedTime = localStorage.getItem('ipa_student_database_last_updated');
+      if (savedTime) {
+        setLastUpdated(savedTime);
+      }
     });
   }, []);
+
+  // Handle forcing a dynamic sync from Google Sheets
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setRefreshSuccess(false);
+    try {
+      const data = await studentService.getStudents(true); // forceRefresh = true
+      setStudentDatabase(data);
+      
+      const savedTime = localStorage.getItem('ipa_student_database_last_updated');
+      if (savedTime) {
+        setLastUpdated(savedTime);
+      }
+      
+      setRefreshSuccess(true);
+      setTimeout(() => setRefreshSuccess(false), 3000); // Sembunyikan status sukses setelah 3 detik
+    } catch (e) {
+      console.error('Gagal menyegarkan data:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Ambil daftar kelas secara dinamis dari database siswa
   const classes = Object.keys(studentDatabase).sort((a, b) => {
@@ -141,6 +172,31 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
               > 
                 <span>MASUK</span> 
               </button>
+
+              {/* Tombol Segarkan Data */}
+              <div className="flex flex-col items-center gap-1.5 mt-3 pt-2 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2 text-xs font-black text-violet-300 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 active:scale-95 disabled:opacity-50 px-4 py-2 rounded-full"
+                >
+                  <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                  <span>
+                    {isRefreshing 
+                      ? 'MEMPERBARUI DATA...' 
+                      : refreshSuccess 
+                        ? 'DATA BERHASIL DISINKRONKAN!' 
+                        : 'SEGARKAN DAFTAR NAMA'
+                    }
+                  </span>
+                </button>
+                {lastUpdated && (
+                  <span className="text-[10px] text-violet-400 opacity-80 italic">
+                    Pembaruan Terakhir: {lastUpdated}
+                  </span>
+                )}
+              </div>
             </form>
           </div>
 
