@@ -28,6 +28,8 @@ import { StatCard } from './components/StatCard';
 import { Dialog } from './components/Dialog';
 import { ColorInput } from './components/ColorInput';
 import { Login } from './components/Login';
+import { firebaseService } from './services/firebaseService';
+import { AppConfig } from './types';
 import { ThemeButton } from './components/ThemeButton';
 import { Home } from './components/Home';
 import { Hasil } from './components/Hasil';
@@ -79,6 +81,10 @@ const App = () => {
   const [logoError, setLogoError] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearch, setShowSearch] = useState<boolean>(false);
+  
+  // --- Dynamic App Config and Modules ---
+  const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [modulesList, setModulesList] = useState<{ id: number; title: string }[]>([]);
   
   // Progress State
   const [progress, setProgress] = useState<UserProgress>({
@@ -154,6 +160,47 @@ const App = () => {
     if (savedMaterialId) {
       setSelectedMaterialId(savedMaterialId);
     }
+  }, []);
+
+  // Fetch appConfig and modules from firebase
+  useEffect(() => {
+    // 1. Fetch app settings text/logo
+    firebaseService.getAppConfig().then(config => {
+      setAppConfig(config);
+    }).catch(err => {
+      console.error("Error loading app config:", err);
+    });
+
+    // 2. Fetch all modules list for sidebar and rendering
+    firebaseService.getAllModules().then(mods => {
+      const sorted = mods.map(m => ({ id: m.id, title: m.title })).sort((a, b) => a.id - b.id);
+      if (sorted.length > 0) {
+        setModulesList(sorted);
+      } else {
+        setModulesList([
+          { id: 1, title: 'Menyemai Benih' },
+          { id: 2, title: 'Pemeliharaan Benih' },
+          { id: 3, title: 'Pindah Tanam' },
+          { id: 4, title: 'Perawatan Tanaman' },
+          { id: 5, title: 'Pupuk Alami' },
+          { id: 6, title: 'Pengendalian Hama' },
+          { id: 7, title: 'Pemanenan' },
+          { id: 8, title: 'Pasca Panen' }
+        ]);
+      }
+    }).catch(err => {
+      console.error("Error loading modules list:", err);
+      setModulesList([
+        { id: 1, title: 'Menyemai Benih' },
+        { id: 2, title: 'Pemeliharaan Benih' },
+        { id: 3, title: 'Pindah Tanam' },
+        { id: 4, title: 'Perawatan Tanaman' },
+        { id: 5, title: 'Pupuk Alami' },
+        { id: 6, title: 'Pengendalian Hama' },
+        { id: 7, title: 'Pemanenan' },
+        { id: 8, title: 'Pasca Panen' }
+      ]);
+    });
   }, []);
 
   useEffect(() => {
@@ -410,7 +457,8 @@ const App = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (showPasswordModal && passwordInput === modulePasswords[showPasswordModal]) {
+    const correctPassword = modulePasswords[showPasswordModal!] || '121212';
+    if (showPasswordModal && passwordInput === correctPassword) {
       setUnlockedModules(prev => new Set([...Array.from(prev), showPasswordModal]));
       setActiveModule(showPasswordModal);
       setCurrentView('modul');
@@ -432,6 +480,7 @@ const App = () => {
         userClass={userClass}
         setUserClass={setUserClass}
         onLogin={handleLogin} 
+        appConfig={appConfig || undefined}
       />
     );
   }
@@ -487,8 +536,8 @@ const App = () => {
             >
               {!logoError ? (
                 <img 
-                  src="https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png" 
-                  alt="Logo SMPN 1 Bengkalis" 
+                  src={appConfig?.logoUrl || "https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png"} 
+                  alt="Logo Sekolah" 
                   className="w-8 h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
                   referrerPolicy="no-referrer"
                   onError={() => setLogoError(true)}
@@ -498,8 +547,8 @@ const App = () => {
               )}
             </motion.button>
             <div>
-              <h2 className="font-black text-[11px] tracking-tight leading-none uppercase">Yuk Berkebun</h2>
-              <p className="text-[8px] opacity-60 font-bold uppercase tracking-widest mt-0.5">Modul Digital</p>
+              <h2 className="font-black text-[11px] tracking-tight leading-none uppercase">{appConfig?.sidebarTitle || "Yuk Berkebun"}</h2>
+              <p className="text-[8px] opacity-60 font-bold uppercase tracking-widest mt-0.5">{appConfig?.sidebarSubtitle || "Modul Digital"}</p>
             </div>
             <button 
               onClick={() => setSidebarOpen(false)}
@@ -609,45 +658,58 @@ const App = () => {
           {/* Main Menu */}
           <div className="space-y-0.5">
             <label className="px-3 text-[9px] font-black opacity-40 uppercase tracking-[0.2em] mb-1.5 block">Modul Belajar</label>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((num, idx) => (
-              <React.Fragment key={num}>
-                <button 
-                  onClick={() => openModule(num)}
-                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all ${currentView === 'modul' && activeModule === num ? 'bg-white/20 shadow-lg' : 'hover:bg-white/5 opacity-60 hover:opacity-100'}`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${currentView === 'modul' && activeModule === num ? 'bg-white text-indigo-600' : 'bg-white/10'}`}>
-                    {currentView === 'modul' && activeModule === num ? <Icons.BookOpen size={18} /> : (
-                      !isTeacher && !unlockedModules.has(num) && num !== 1 && num !== 2 && num !== 3 && num !== 4 ? <Icons.Lock size={14} className="opacity-40" /> : (
-                        !logoError ? (
-                          <img 
-                            src="https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png" 
-                            alt="Logo SMP" 
-                            className="w-5 h-5 object-contain"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <Icons.School size={16} className="opacity-50" />
+            {(modulesList.length > 0 ? modulesList : [
+              { id: 1, title: 'Menyemai Benih' },
+              { id: 2, title: 'Pemeliharaan Benih' },
+              { id: 3, title: 'Pindah Tanam' },
+              { id: 4, title: 'Perawatan Tanaman' },
+              { id: 5, title: 'Pupuk Alami' },
+              { id: 6, title: 'Pengendalian Hama' },
+              { id: 7, title: 'Pemanenan' },
+              { id: 8, title: 'Pasca Panen' }
+            ]).map((mod, idx, arr) => {
+              const num = mod.id;
+              return (
+                <React.Fragment key={num}>
+                  <button 
+                    onClick={() => openModule(num)}
+                    className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all ${currentView === 'modul' && activeModule === num ? 'bg-white/20 shadow-lg' : 'hover:bg-white/5 opacity-60 hover:opacity-100'}`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${currentView === 'modul' && activeModule === num ? 'bg-white text-indigo-600' : 'bg-white/10'}`}>
+                      {currentView === 'modul' && activeModule === num ? <Icons.BookOpen size={18} /> : (
+                        !isTeacher && !unlockedModules.has(num) && num !== 1 && num !== 2 && num !== 3 && num !== 4 ? <Icons.Lock size={14} className="opacity-40" /> : (
+                          !logoError ? (
+                            <img 
+                              src={appConfig?.logoUrl || "https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png"} 
+                              alt="Logo Sekolah" 
+                              className="w-5 h-5 object-contain"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <Icons.School size={16} className="opacity-50" />
+                          )
                         )
-                      )
-                    )}
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="font-bold text-sm">MODUL {num}</span>
-                    {isTeacher && num !== 1 && num !== 2 && num !== 3 && num !== 4 && (
-                      <span className="text-[10px] opacity-80 font-mono text-amber-400">pass : {modulePasswords[num]}</span>
-                    )}
-                  </div>
-                </button>
-                {idx < 7 && (
-                  <div className="mx-6 my-0.5">
-                    <div 
-                      className="h-[2px] w-full bg-white/30" 
-                      style={{ clipPath: 'polygon(0% 50%, 50% 0%, 100% 50%, 50% 100%)' }} 
-                    />
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
+                      )}
+                    </div>
+                    <div className="flex flex-col items-start text-left max-w-[140px]">
+                      <span className="font-black text-[11px] leading-tight text-white uppercase tracking-wider">MODUL {num}</span>
+                      <span className="text-[10px] leading-snug font-bold opacity-80 truncate w-full">{mod.title}</span>
+                      {isTeacher && num !== 1 && num !== 2 && num !== 3 && num !== 4 && (
+                        <span className="text-[9px] opacity-90 font-mono text-amber-300">pass: {modulePasswords[num] || '121212'}</span>
+                      )}
+                    </div>
+                  </button>
+                  {idx < arr.length - 1 && (
+                    <div className="mx-6 my-0.5">
+                      <div 
+                        className="h-[2px] w-full bg-white/30" 
+                        style={{ clipPath: 'polygon(0% 50%, 50% 0%, 100% 50%, 50% 100%)' }} 
+                      />
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
             <div className="mx-4 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent my-2" />
           </div>
 
@@ -792,6 +854,7 @@ const App = () => {
                   setSidebarOpen={setSidebarOpen} 
                   onOpenThemeEditor={() => setShowThemeEditor(true)}
                   onLogout={() => setShowLogoutConfirm(true)}
+                  appConfig={appConfig || undefined}
                 />
               </div>
             )}
@@ -1157,8 +1220,8 @@ const App = () => {
           >
             {!logoError ? (
               <img 
-                src="https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png" 
-                alt="Logo SMPN 1 Bengkalis" 
+                src={appConfig?.logoUrl || "https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png"} 
+                alt="Logo Sekolah" 
                 className="w-24 h-24 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                 referrerPolicy="no-referrer"
                 onError={() => setLogoError(true)}

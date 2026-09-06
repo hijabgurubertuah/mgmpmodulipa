@@ -8,6 +8,7 @@ import { modul5Service } from './modul5';
 import { modul6Service } from './modul6';
 import { modul7Service } from './modul7';
 import { modul8Service } from './modul8';
+import { AppConfig } from '../types';
 
 const localServices: Record<number, any> = {
   1: modul1Service,
@@ -18,6 +19,18 @@ const localServices: Record<number, any> = {
   6: modul6Service,
   7: modul7Service,
   8: modul8Service,
+};
+
+export const DEFAULT_APP_CONFIG: AppConfig = {
+  logoUrl: "https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png",
+  loginTitle: "Selamat Datang di Modul Berkebun SMPN 1 Bengkalis",
+  loginQuote: "“Satu langkah kecil hari ini, Menyelamatkan hidup di masa depan”",
+  loginTagline: "Copyright SMPN 1 BENGKALIS",
+  homeTitle: "Selamat Datang di Modul Berkebun SMPN 1 Bengkalis",
+  homeQuote: '"Janganlah engkau mengucapkan perkataan yang engkau sendiri tidak suka mendengarnya ketika orang lain mengucapkannya kepadamu."',
+  schoolName: "SMPN 1 Bengkalis",
+  sidebarTitle: "Yuk Berkebun",
+  sidebarSubtitle: "Modul Digital"
 };
 
 export interface Page {
@@ -261,6 +274,33 @@ export const firebaseService = {
       }
     } catch (error) {
       console.error("Error resetting modules to default:", error);
+      throw error;
+    }
+  },
+
+  getAppConfig: async (): Promise<AppConfig> => {
+    try {
+      const docRef = doc(db, 'config', 'appTextConfig');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { ...DEFAULT_APP_CONFIG, ...docSnap.data() } as AppConfig;
+      } else {
+        // Auto-seed default config if not found
+        await setDoc(docRef, DEFAULT_APP_CONFIG);
+        return DEFAULT_APP_CONFIG;
+      }
+    } catch (error) {
+      console.error("Error getting app config:", error);
+      return DEFAULT_APP_CONFIG;
+    }
+  },
+
+  saveAppConfig: async (config: AppConfig): Promise<void> => {
+    try {
+      const docRef = doc(db, 'config', 'appTextConfig');
+      await setDoc(docRef, removeUndefined(config));
+    } catch (error) {
+      console.error("Error saving app config:", error);
       throw error;
     }
   }

@@ -39,11 +39,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
   const [selectedPageIdx, setSelectedPageIdx] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'materi' | 'rekap'>('materi');
+  const [activeTab, setActiveTab] = useState<'materi' | 'rekap' | 'settings'>('materi');
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
     show: false,
     message: '',
     type: 'success'
+  });
+
+  // State for dynamic text settings
+  const [appConfig, setAppConfig] = useState<any>({
+    logoUrl: '',
+    loginTitle: '',
+    loginQuote: '',
+    loginTagline: '',
+    homeTitle: '',
+    homeQuote: '',
+    schoolName: '',
+    sidebarTitle: '',
+    sidebarSubtitle: ''
   });
 
   // Current editing module deep state copy
@@ -51,7 +64,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
 
   useEffect(() => {
     loadModules();
+    loadAppConfig();
   }, []);
+
+  const loadAppConfig = async () => {
+    try {
+      const config = await firebaseService.getAppConfig();
+      setAppConfig(config);
+    } catch (error) {
+      console.error("Error loading app config:", error);
+    }
+  };
+
+  const handleSaveAppConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await firebaseService.saveAppConfig(appConfig);
+      showToast('Setelan teks & logo berhasil disimpan ke Cloud!', 'success');
+      // Force refresh AppConfig across client
+      window.location.reload();
+    } catch (e) {
+      showToast('Gagal menyimpan setelan ke Cloud.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const loadModules = async () => {
     setLoading(true);
@@ -374,15 +412,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
         {/* Global Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveTab(activeTab === 'materi' ? 'rekap' : 'materi')}
+            onClick={() => setActiveTab('materi')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
+              activeTab === 'materi' 
+                ? 'bg-violet-600 text-white shadow-md' 
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <Icons.BookOpen size={14} />
+            <span>Kelola Materi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rekap')}
             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
               activeTab === 'rekap' 
                 ? 'bg-violet-600 text-white shadow-md' 
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
             }`}
           >
-            {activeTab === 'rekap' ? <Icons.BookOpen size={14} /> : <GraduationCap size={14} />}
-            <span>{activeTab === 'rekap' ? 'Kelola Materi' : 'Daftar Nilai Siswa'}</span>
+            <GraduationCap size={14} />
+            <span>Nilai Siswa</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
+              activeTab === 'settings' 
+                ? 'bg-violet-600 text-white shadow-md' 
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+            }`}
+          >
+            <Icons.Palette size={14} />
+            <span>Setelan Teks & Logo</span>
           </button>
 
           <button 
@@ -431,6 +493,193 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
               <span>Daftar Nilai Kuis & Progres Seluruh Siswa</span>
             </h2>
             <Rekap onBack={() => setActiveTab('materi')} theme={theme} />
+          </div>
+        ) : activeTab === 'settings' ? (
+          <div className="bg-slate-950 p-6 md:p-8 rounded-3xl border border-slate-800 shadow-2xl max-w-4xl mx-auto w-full">
+            <h2 className="text-lg font-black text-slate-100 uppercase tracking-wider mb-6 flex items-center gap-2 border-b border-slate-800 pb-4">
+              <Icons.Palette className="text-violet-400" size={20} />
+              <span>Setelan Tampilan Teks & Logo Aplikasi</span>
+            </h2>
+            
+            <form onSubmit={handleSaveAppConfig} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Bagian Logo */}
+                <div className="space-y-3 bg-slate-900/50 p-5 rounded-2xl border border-slate-800">
+                  <h3 className="text-sm font-black text-violet-300 uppercase tracking-wider flex items-center gap-2">
+                    <Icons.Image size={16} />
+                    <span>Identitas & Logo Sekolah</span>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">URL Logo Sekolah (PNG/JPG)</label>
+                      <input 
+                        type="url"
+                        value={appConfig.logoUrl}
+                        onChange={(e) => setAppConfig({ ...appConfig, logoUrl: e.target.value })}
+                        placeholder="Contoh: https://i.ibb.co.com/..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Nama Sekolah</label>
+                      <input 
+                        type="text"
+                        value={appConfig.schoolName}
+                        onChange={(e) => setAppConfig({ ...appConfig, schoolName: e.target.value })}
+                        placeholder="SMPN 1 Bengkalis"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Pratinjau Logo */}
+                    {appConfig.logoUrl && (
+                      <div className="pt-2 flex flex-col items-center gap-2">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Pratinjau Logo</span>
+                        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                          <img 
+                            src={appConfig.logoUrl} 
+                            alt="Pratinjau Logo" 
+                            className="w-20 h-20 object-contain mx-auto"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              (e.target as any).src = 'https://placehold.co/100x100?text=Error+Load';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bagian Sidebar */}
+                <div className="space-y-3 bg-slate-900/50 p-5 rounded-2xl border border-slate-800">
+                  <h3 className="text-sm font-black text-violet-300 uppercase tracking-wider flex items-center gap-2">
+                    <Icons.LayoutDashboard size={16} />
+                    <span>Teks Header Sidebar</span>
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Judul Sidebar (Baris 1)</label>
+                      <input 
+                        type="text"
+                        value={appConfig.sidebarTitle}
+                        onChange={(e) => setAppConfig({ ...appConfig, sidebarTitle: e.target.value })}
+                        placeholder="Yuk Berkebun"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Subjudul Sidebar (Baris 2)</label>
+                      <input 
+                        type="text"
+                        value={appConfig.sidebarSubtitle}
+                        onChange={(e) => setAppConfig({ ...appConfig, sidebarSubtitle: e.target.value })}
+                        placeholder="Modul Digital"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian Halaman Login */}
+                <div className="space-y-3 bg-slate-900/50 p-5 rounded-2xl border border-slate-800 md:col-span-2">
+                  <h3 className="text-sm font-black text-violet-300 uppercase tracking-wider flex items-center gap-2">
+                    <Icons.Lock size={16} />
+                    <span>Teks Halaman Login</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Judul Login (Mendukung Enter/Baris Baru)</label>
+                      <textarea 
+                        value={appConfig.loginTitle}
+                        onChange={(e) => setAppConfig({ ...appConfig, loginTitle: e.target.value })}
+                        placeholder="Selamat Datang &#10;di Modul Berkebun SMPN 1 Bengkalis"
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Kutipan / Subjudul Login</label>
+                      <textarea 
+                        value={appConfig.loginQuote}
+                        onChange={(e) => setAppConfig({ ...appConfig, loginQuote: e.target.value })}
+                        placeholder="“Satu langkah kecil hari ini, Menyelamatkan hidup di masa depan”"
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bagian Halaman Utama (Home) */}
+                <div className="space-y-3 bg-slate-900/50 p-5 rounded-2xl border border-slate-800 md:col-span-2">
+                  <h3 className="text-sm font-black text-violet-300 uppercase tracking-wider flex items-center gap-2">
+                    <Icons.Home size={16} />
+                    <span>Teks Halaman Utama (Dashboard) & Footer</span>
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Judul Sambutan Dashboard (Mendukung Enter/Baris Baru)</label>
+                      <textarea 
+                        value={appConfig.homeTitle}
+                        onChange={(e) => setAppConfig({ ...appConfig, homeTitle: e.target.value })}
+                        placeholder="Selamat Datang &#10;di Modul Berkebun &#10;SMPN 1 Bengkalis"
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Kutipan Penasihat (Nasihat di bawah tombol mulai)</label>
+                      <textarea 
+                        value={appConfig.homeQuote}
+                        onChange={(e) => setAppConfig({ ...appConfig, homeQuote: e.target.value })}
+                        placeholder='"Janganlah engkau mengucapkan perkataan..."'
+                        rows={3}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="text-xs text-slate-400 font-bold block mb-1">Teks Hak Cipta / Footer (Copyright)</label>
+                      <input 
+                        type="text"
+                        value={appConfig.loginTagline}
+                        onChange={(e) => setAppConfig({ ...appConfig, loginTagline: e.target.value })}
+                        placeholder="Copyright © SMPN 1 BENGKALIS"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-sm font-medium text-slate-200 outline-none focus:border-violet-600 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Tombol Simpan Setelan */}
+              <div className="flex justify-end pt-4 border-t border-slate-800">
+                <button 
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50 text-white font-black text-sm uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-2 active:scale-95 transition-all"
+                >
+                  <Save size={16} />
+                  <span>{saving ? 'Menyimpan...' : 'Simpan Semua Setelan'}</span>
+                </button>
+              </div>
+
+            </form>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start flex-1">

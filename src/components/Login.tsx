@@ -4,18 +4,21 @@ import { GardenDecorations } from './GardenDecorations';
 import { studentService } from '../services/studentService';
 import { RefreshCw } from 'lucide-react';
 
+import { AppConfig } from '../types';
+
 interface LoginProps {
   username: string;
   setUsername: (name: string) => void;
   userClass: string;
   setUserClass: (className: string) => void;
   onLogin: (e: React.FormEvent) => void;
+  appConfig?: AppConfig;
 }
 
 /**
  * Login component with caching, dynamic ADMIN password conversion, and sleek rounded-2xl styling.
  */
-export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, setUserClass, onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, setUserClass, onLogin, appConfig }) => {
   const [studentDatabase, setStudentDatabase] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -94,14 +97,14 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
               style={{ perspective: 1000 }}
             >
               <img 
-                src="https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png" 
-                alt="Logo SMPN 1 Bengkalis" 
+                src={appConfig?.logoUrl || "https://i.ibb.co.com/kVLW5n61/logo-smpn-1-bengkalis-kecil-Copy.png"} 
+                alt="Logo Sekolah" 
                 className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
                 referrerPolicy="no-referrer"
               />
             </motion.div>
-            <h1 id="hero-title" className="text-xl md:text-3xl font-black leading-tight" style={{ fontFamily: "'Playfair Display', serif", color: '#f3e8ff' }}>
-              Selamat Datang <br/> di Modul Berkebun SMPN 1 Bengkalis
+            <h1 id="hero-title" className="text-xl md:text-3xl font-black leading-tight whitespace-pre-line text-center px-4" style={{ fontFamily: "'Playfair Display', serif", color: '#f3e8ff' }}>
+              {appConfig?.loginTitle || "Selamat Datang \n di Modul Berkebun SMPN 1 Bengkalis"}
             </h1>
           </div>
 
@@ -114,8 +117,8 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
 
           {/* Subtitle */}
           <div className="fade-up-d2 space-y-1">
-            <p id="hero-subtitle" className="text-sm md:text-base max-w-md leading-relaxed mx-auto" style={{ color: '#d8b4fe', opacity: 0.8 }}>
-              “Satu langkah kecil hari ini, Menyelamatkan hidup di masa depan”
+            <p id="hero-subtitle" className="text-sm md:text-base max-w-md leading-relaxed mx-auto px-4" style={{ color: '#d8b4fe', opacity: 0.8 }}>
+              {appConfig?.loginQuote || "“Satu langkah kecil hari ini, Menyelamatkan hidup di masa depan”"}
             </p>
           </div>
 
@@ -227,7 +230,7 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
             🍇 Kembali ke Alam 🍇
           </p>
           <p className="fade-up-d3 mt-2 text-[10px] font-bold tracking-wide" style={{ color: '#d8b4fe' }}>
-            Copyright SMPN 1 BENGKALIS
+            {appConfig?.loginTagline || "Copyright SMPN 1 BENGKALIS"}
           </p>
         </div>
       </main>

@@ -42,3 +42,15 @@ export type UserProgress = {
   quizHistory: QuizAttempt[];
   username: string;
 };
+
+export type AppConfig = {
+  logoUrl: string;
+  loginTitle: string;
+  loginQuote: string;
+  loginTagline: string;
+  homeTitle: string;
+  homeQuote: string;
+  schoolName: string;
+  sidebarTitle: string;
+  sidebarSubtitle: string;
+};

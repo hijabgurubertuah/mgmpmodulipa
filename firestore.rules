@@ -15,5 +15,10 @@ service cloud.firestore {
     match /default_modules/{defaultId} {
       allow read, write: if true;
     }
+
+    // Izinkan akses baca dan tulis pada koleksi config untuk menyimpan setelan tulisan dan logo aplikasi
+    match /config/{configId} {
+      allow read, write: if true;
+    }
   }
 }

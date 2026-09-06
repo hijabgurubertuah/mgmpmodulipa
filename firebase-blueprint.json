@@ -19,12 +19,33 @@
         }
       },
       "required": ["id", "title", "pages"]
+    },
+    "AppConfig": {
+      "title": "AppConfig",
+      "description": "Pengaturan tulisan teks dinamis, kutipan, dan URL Logo aplikasi di halaman login, utama, dan sidebar",
+      "type": "object",
+      "properties": {
+        "logoUrl": { "type": "string" },
+        "loginTitle": { "type": "string" },
+        "loginQuote": { "type": "string" },
+        "loginTagline": { "type": "string" },
+        "homeTitle": { "type": "string" },
+        "homeQuote": { "type": "string" },
+        "schoolName": { "type": "string" },
+        "sidebarTitle": { "type": "string" },
+        "sidebarSubtitle": { "type": "string" }
+      },
+      "required": ["logoUrl", "loginTitle", "loginQuote", "loginTagline", "homeTitle", "homeQuote", "schoolName", "sidebarTitle", "sidebarSubtitle"]
     }
   },
   "firestore": {
     "/modules/{moduleId}": {
       "schema": "Module",
       "description": "Koleksi materi modul pembelajaran IPA"
+    },
+    "/config/appTextConfig": {
+      "schema": "AppConfig",
+      "description": "Pemberian setelan tulisan kustom dan logo aplikasi"
     }
   }
 }
