@@ -201,7 +201,7 @@ const App = () => {
         { id: 8, title: 'Pasca Panen' }
       ]);
     });
-  }, []);
+  }, [isAdminPreviewMode]);
 
   useEffect(() => {
     localStorage.setItem('ipa_active_module', activeModule.toString());

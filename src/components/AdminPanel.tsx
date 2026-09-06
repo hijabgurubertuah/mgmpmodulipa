@@ -403,83 +403,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-              PANEL KONTROL GURU (CMS)
+              ADMIN
             </h1>
-            <p className="text-[10px] md:text-xs text-slate-400 font-mono">SMPN 1 Bengkalis — Sinkronisasi Google Cloud Firestore</p>
           </div>
         </div>
 
         {/* Global Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setActiveTab('materi')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
-              activeTab === 'materi' 
-                ? 'bg-violet-600 text-white shadow-md' 
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-            }`}
-          >
-            <Icons.BookOpen size={14} />
-            <span>Kelola Materi</span>
-          </button>
+          {/* Tab Group */}
+          <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setActiveTab('materi')}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                activeTab === 'materi' 
+                  ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' 
+                  : 'hover:bg-slate-850 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Kelola Materi Pembelajaran"
+            >
+              <Icons.BookOpen size={18} />
+            </button>
 
-          <button
-            onClick={() => setActiveTab('rekap')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
-              activeTab === 'rekap' 
-                ? 'bg-violet-600 text-white shadow-md' 
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-            }`}
-          >
-            <GraduationCap size={14} />
-            <span>Nilai Siswa</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('rekap')}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                activeTab === 'rekap' 
+                  ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' 
+                  : 'hover:bg-slate-850 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Daftar Nilai & Progres Siswa"
+            >
+              <GraduationCap size={18} />
+            </button>
 
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 ${
-              activeTab === 'settings' 
-                ? 'bg-violet-600 text-white shadow-md' 
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-            }`}
-          >
-            <Icons.Palette size={14} />
-            <span>Setelan Teks & Logo</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all active:scale-95 ${
+                activeTab === 'settings' 
+                  ? 'bg-violet-600 text-white shadow-md shadow-violet-900/40' 
+                  : 'hover:bg-slate-850 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Setelan Tampilan Teks & Logo"
+            >
+              <Icons.Palette size={18} />
+            </button>
+          </div>
 
+          <div className="h-6 w-[1px] bg-slate-800 mx-1 hidden sm:block" />
+
+          {/* Action Group */}
           <button 
             onClick={onPreviewToggle}
-            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-2 active:scale-95 transition-all"
-            title="Lihat Pratinjau Tampilan Siswa"
+            className="w-10 h-10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center active:scale-95 transition-all"
+            title="Lihat Pratinjau Tampilan Siswa (Preview)"
           >
-            <Eye size={14} />
-            <span>Lihat Hasil (Preview)</span>
+            <Eye size={18} />
           </button>
 
           <button 
             onClick={handleSetAsDefault}
-            className="px-4 py-2.5 bg-sky-500/10 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all"
-            title="Simpan susunan materi saat ini sebagai setelan default baru"
+            className="w-10 h-10 bg-sky-500/10 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 rounded-xl flex items-center justify-center active:scale-95 transition-all"
+            title="Jadikan Struktur Materi Saat Ini Sebagai Default (Sandi: gurusmp)"
           >
-            <Check size={14} />
-            <span>Jadikan Default</span>
+            <Check size={18} />
           </button>
 
           <button 
             onClick={handleResetToDefault}
-            className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all"
-            title="Reset modul ke setelan default terakhir"
+            className="w-10 h-10 bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl flex items-center justify-center active:scale-95 transition-all"
+            title="Reset Seluruh Materi ke Setelan Default Bawaan (Sandi: gurusmp)"
           >
-            <RotateCcw size={14} />
-            <span>Reset Bawaan</span>
+            <RotateCcw size={18} />
           </button>
 
           <button 
             onClick={onLogout}
-            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center gap-1.5 active:scale-95 transition-all"
+            className="w-10 h-10 bg-rose-600 hover:bg-rose-700 text-white rounded-xl flex items-center justify-center shadow-lg hover:shadow-rose-900/20 active:scale-95 transition-all"
+            title="Keluar Sesi Guru"
           >
-            <Icons.LogOut size={14} />
-            <span>EXIT</span>
+            <Icons.LogOut size={18} />
           </button>
         </div>
       </header>
@@ -1225,10 +1227,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
                   )}
 
                   {/* FOOTER BAR: Save Button */}
-                  <div className="border-t border-slate-800 pt-6 flex items-center justify-between">
-                    <div className="text-xs text-slate-500 font-mono">
-                      *Perubahan hanya tersimpan setelah Anda menekan tombol "SIMPAN KE CLOUD FIRESTORE".
-                    </div>
+                  <div className="border-t border-slate-800 pt-6 flex items-center justify-end">
                     <button
                       onClick={handleSaveCurrentModule}
                       disabled={saving}
