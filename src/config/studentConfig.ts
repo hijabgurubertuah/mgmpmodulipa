@@ -117,7 +117,7 @@ export const STUDENT_CONFIG = {
       'TAUFIK HIDAYAT',
       'ZULFA'
     ],
-    'GURU': [
+    'ADMIN': [
       'GURUSMP'
     ]
   } as Record<string, string[]>

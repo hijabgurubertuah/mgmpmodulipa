@@ -79,11 +79,11 @@ export const studentService = {
         }
       }
 
-      // Pastikan hak akses bypass GURU selalu ada
-      if (!data['GURU']) {
-        data['GURU'] = ['GURUSMP'];
-      } else if (!data['GURU'].includes('GURUSMP')) {
-        data['GURU'].push('GURUSMP');
+      // Pastikan hak akses bypass ADMIN selalu ada
+      if (!data['ADMIN']) {
+        data['ADMIN'] = ['GURUSMP'];
+      } else if (!data['ADMIN'].includes('GURUSMP')) {
+        data['ADMIN'].push('GURUSMP');
       }
 
       // Urutkan nama alfabetis per kelas

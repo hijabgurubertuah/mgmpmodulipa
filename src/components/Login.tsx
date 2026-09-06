@@ -13,7 +13,7 @@ interface LoginProps {
 }
 
 /**
- * Login component with caching and force-refresh capabilities.
+ * Login component with caching, dynamic ADMIN password conversion, and sleek rounded-2xl styling.
  */
 export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, setUserClass, onLogin }) => {
   const [studentDatabase, setStudentDatabase] = useState<Record<string, string[]>>({});
@@ -58,17 +58,23 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
   };
 
   // Ambil daftar kelas secara dinamis dari database siswa
-  const classes = Object.keys(studentDatabase).sort((a, b) => {
-    if (a === 'GURU') return 1;
-    if (b === 'GURU') return -1;
-    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-  });
+  const classes = Object.keys(studentDatabase)
+    .filter(c => c !== 'GURU' && c !== 'ADMIN' && c !== 'TAMU') // Saring nama-nama kelas lama agar bersih
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+  // Tambahkan 'TAMU' dan 'ADMIN' di akhir daftar kelas secara konsisten
+  classes.push('TAMU');
+  classes.push('ADMIN');
 
   // Handle class selection
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedClass = e.target.value;
     setUserClass(selectedClass);
-    setUsername(''); // Reset nama yang terpilih saat ganti kelas
+    if (selectedClass === 'TAMU') {
+      setUsername('TAMU');
+    } else {
+      setUsername(''); // Reset nama yang terpilih saat ganti kelas
+    }
   };
 
   const studentNamesInClass = userClass ? (studentDatabase[userClass] || []) : [];
@@ -117,18 +123,20 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
           <div className="fade-up-d3 mt-4 w-full max-w-xs md:max-w-sm">
             <form onSubmit={onLogin} className="flex flex-col gap-3">
               
-              {/* Dropdown 1: Pilih Kelas */}
+              {/* Dropdown 1: Pilih Kelas (Rounded-2xl) */}
               <div className="relative">
                 <select
                   value={userClass}
                   onChange={handleClassChange}
-                  className="w-full px-6 py-4 rounded-full text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer"
+                  className="w-full px-6 py-4 rounded-2xl text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer"
                   style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
                   required
                 >
                   <option value="" disabled>{loading ? "MEMUAT KELAS..." : "PILIH KELAS"}</option>
                   {classes.map(c => (
-                    <option key={c} value={c}>{c === 'GURU' ? 'GURU' : `KELAS ${c}`}</option>
+                    <option key={c} value={c}>
+                      {c === 'ADMIN' ? 'ADMIN' : c === 'TAMU' ? 'TAMU' : `KELAS ${c}`}
+                    </option>
                   ))}
                 </select>
                 <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-violet-800">
@@ -136,50 +144,64 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
                 </div>
               </div>
 
-              {/* Dropdown 2: Pilih Nama Siswa */}
+              {/* Input 2: Pilih Nama Siswa atau Password jika ADMIN (Rounded-2xl) */}
               <div className="relative">
-                <select
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-6 py-4 rounded-full text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer disabled:opacity-60"
-                  style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
-                  required
-                  disabled={!userClass || loading}
-                >
-                  <option value="" disabled>
-                    {!userClass 
-                      ? "PILIH KELAS TERLEBIH DAHULU" 
-                      : loading 
-                        ? "MEMUAT DAFTAR NAMA..." 
-                        : "PILIH NAMA ANDA"
-                    }
-                  </option>
-                  {studentNamesInClass.map(name => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-violet-800">
-                  ▼
-                </div>
+                {userClass === 'ADMIN' ? (
+                  <input
+                    type="password"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="KATA SANDI ADMIN"
+                    className="w-full px-6 py-4 rounded-2xl text-center text-lg font-semibold border-2 transition-all outline-none"
+                    style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
+                    required
+                  />
+                ) : (
+                  <div className="relative">
+                    <select
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-6 py-4 rounded-2xl text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer disabled:opacity-60"
+                      style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
+                      required
+                      disabled={!userClass || loading}
+                    >
+                      <option value="" disabled>
+                        {!userClass 
+                          ? "PILIH KELAS TERLEBIH DAHULU" 
+                          : loading 
+                            ? "MEMUAT DAFTAR NAMA..." 
+                            : "PILIH NAMA ANDA"
+                        }
+                      </option>
+                      {studentNamesInClass.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-violet-800">
+                      ▼
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Tombol MASUK */}
+              {/* Tombol MASUK (Rounded-2xl) */}
               <button 
                 type="submit" 
                 disabled={!username || !userClass}
-                className="btn-garden pulse-glow inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full text-xl font-bold tracking-wide mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-garden pulse-glow inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl text-xl font-bold tracking-wide mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #a855f7, #7e22ce)', color: '#fff', border: 'none', cursor: 'pointer' }}
               > 
                 <span>MASUK</span> 
               </button>
 
-              {/* Tombol Segarkan Data */}
+              {/* Tombol Segarkan Data (Rounded-2xl) */}
               <div className="flex flex-col items-center gap-1.5 mt-3 pt-2 border-t border-white/5">
                 <button
                   type="button"
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className="flex items-center gap-2 text-xs font-black text-violet-300 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 active:scale-95 disabled:opacity-50 px-4 py-2 rounded-full"
+                  className="flex items-center gap-2 text-xs font-black text-violet-300 hover:text-white transition-all cursor-pointer bg-white/5 hover:bg-white/10 active:scale-95 disabled:opacity-50 px-4 py-2 rounded-2xl"
                 >
                   <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
                   <span>

@@ -204,7 +204,24 @@ const App = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() && userClass.trim()) {
-      const currentUsername = username.trim();
+      let currentUsername = username.trim();
+
+      // Jika login sebagai ADMIN, periksa kecocokan kata sandi (case-insensitive)
+      if (userClass === 'ADMIN') {
+        if (currentUsername.toLowerCase() !== 'gurusmp') {
+          alert('KATA SANDI ADMIN SALAH!');
+          return;
+        }
+        // Jika benar, tetapkan nama pengguna sebagai 'GURUSMP' untuk mengaktifkan dasbor guru/admin
+        currentUsername = 'GURUSMP';
+        setUsername('GURUSMP');
+      }
+
+      // Jika login sebagai TAMU, set nama pengguna sebagai 'TAMU' secara instan
+      if (userClass === 'TAMU') {
+        currentUsername = 'TAMU';
+        setUsername('TAMU');
+      }
 
       // Load user-specific unlocked modules
       const savedUnlocked = localStorage.getItem(`ipa_unlocked_modules_${currentUsername}`);
@@ -239,6 +256,14 @@ const App = () => {
   };
 
   const handleLogout = () => {
+    // Jika user adalah TAMU, hapus progres lokalnya saat logout
+    if (username === 'TAMU') {
+      localStorage.removeItem('ipa_progress_TAMU');
+      localStorage.removeItem('ipa_unlocked_modules_TAMU');
+      localStorage.removeItem('ipa_user');
+      localStorage.removeItem('ipa_user_class');
+    }
+
     setIsLoggedIn(false);
     setCurrentView('home');
     setSelectedMaterialId(null);
@@ -246,7 +271,6 @@ const App = () => {
     localStorage.removeItem('ipa_selected_material_id');
     localStorage.removeItem('ipa_perkenalan_active_page');
     localStorage.setItem('ipa_is_logged_in', 'false');
-    // Note: we DO NOT remove ipa_user or ipa_user_class here so they persist on returning to Login screen
     setShowLogoutConfirm(false);
   };
 
