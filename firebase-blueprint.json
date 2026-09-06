@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "Module": {
+      "title": "Module",
+      "description": "Materi pembelajaran IPA berkebun sayur sawi",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Nomor ID modul"
+        },
+        "title": {
+          "type": "string",
+          "description": "Judul modul"
+        },
+        "pages": {
+          "type": "array",
+          "description": "Daftar halaman dalam modul"
+        }
+      },
+      "required": ["id", "title", "pages"]
+    }
+  },
+  "firestore": {
+    "/modules/{moduleId}": {
+      "schema": "Module",
+      "description": "Koleksi materi modul pembelajaran IPA"
+    }
+  }
+}

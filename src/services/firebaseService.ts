@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { modul1Service } from './modul1';
 import { modul2Service } from './modul2';
 import { modul3Service } from './modul3';
@@ -61,6 +61,22 @@ export interface ModuleData {
   id: number;
   title: string;
   pages: Page[];
+}
+
+// Helper function to recursively remove undefined values before saving to Firestore
+function removeUndefined(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(item => removeUndefined(item));
+  } else if (obj !== null && typeof obj === 'object') {
+    const cleaned: any = {};
+    Object.keys(obj).forEach(key => {
+      if (obj[key] !== undefined) {
+        cleaned[key] = removeUndefined(obj[key]);
+      }
+    });
+    return cleaned;
+  }
+  return obj;
 }
 
 export const firebaseService = {
@@ -177,30 +193,74 @@ export const firebaseService = {
   saveModule: async (moduleData: ModuleData): Promise<void> => {
     try {
       const docRef = doc(db, 'modules', `modul_${moduleData.id}`);
-      await setDoc(docRef, moduleData);
+      const cleanedData = removeUndefined(moduleData);
+      await setDoc(docRef, cleanedData);
     } catch (error) {
       console.error(`Error saving module ${moduleData.id}:`, error);
       throw error;
     }
   },
 
-  // Seed or Reset all modules 1-8 to their initial local values in Firestore
+  // Save current active modules in Firestore as the new custom default
+  saveCurrentAsDefault: async (): Promise<void> => {
+    try {
+      // 1. Get all current modules from modules collection
+      const querySnapshot = await getDocs(collection(db, 'modules'));
+      
+      // 2. Fetch and delete existing custom defaults first to avoid stale modules
+      const oldDefaults = await getDocs(collection(db, 'default_modules'));
+      for (const oldDoc of oldDefaults.docs) {
+        await deleteDoc(doc(db, 'default_modules', oldDoc.id));
+      }
+
+      // 3. Save current modules into 'default_modules'
+      for (const docSnapshot of querySnapshot.docs) {
+        const data = docSnapshot.data();
+        const docRef = doc(db, 'default_modules', docSnapshot.id);
+        await setDoc(docRef, removeUndefined(data));
+      }
+    } catch (error) {
+      console.error("Error saving current modules as default:", error);
+      throw error;
+    }
+  },
+
+  // Seed or Reset all modules to default. Uses 'default_modules' if exists, else falls back to local services.
   resetAllModulesToDefault: async (): Promise<void> => {
     try {
-      for (let i = 1; i <= 8; i++) {
-        const localService = localServices[i];
-        if (localService) {
-          const localData = localService.getIntroduction();
-          const docRef = doc(db, 'modules', `modul_${i}`);
-          await setDoc(docRef, {
-            id: i,
-            title: localData.title,
-            pages: localData.pages
-          });
+      // 1. Fetch custom defaults
+      const defaultSnapshot = await getDocs(collection(db, 'default_modules'));
+      
+      // 2. Clear current modules to prevent leftover modules
+      const currentSnapshot = await getDocs(collection(db, 'modules'));
+      for (const curDoc of currentSnapshot.docs) {
+        await deleteDoc(doc(db, 'modules', curDoc.id));
+      }
+
+      if (!defaultSnapshot.empty) {
+        // Restore from custom defaults
+        for (const defDoc of defaultSnapshot.docs) {
+          const defaultData = defDoc.data();
+          const destRef = doc(db, 'modules', defDoc.id);
+          await setDoc(destRef, removeUndefined(defaultData));
+        }
+      } else {
+        // Fallback to local default modules 1-8
+        for (let i = 1; i <= 8; i++) {
+          const localService = localServices[i];
+          if (localService) {
+            const localData = localService.getIntroduction();
+            const docRef = doc(db, 'modules', `modul_${i}`);
+            await setDoc(docRef, {
+              id: i,
+              title: localData.title,
+              pages: localData.pages
+            });
+          }
         }
       }
     } catch (error) {
-      console.error("Error resetting modules:", error);
+      console.error("Error resetting modules to default:", error);
       throw error;
     }
   }

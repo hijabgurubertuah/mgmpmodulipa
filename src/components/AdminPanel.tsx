@@ -134,16 +134,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
   };
 
   const handleResetToDefault = async () => {
-    if (!window.confirm("PERINGATAN! Semua materi kustom Modul 1-8 yang Anda ubah akan dihapus dan dikembalikan ke bawaan pabrik. Lanjutkan?")) {
+    const pwd = window.prompt("PERINGATAN! Semua materi kustom yang Anda ubah akan dihapus dan dikembalikan ke bawaan default terakhir.\n\nUntuk melanjutkan, silakan masukkan kata sandi administrator (Sandi: gurusmp):");
+    if (pwd === null) return; // User cancelled the prompt
+    if (pwd.trim().toLowerCase() !== 'gurusmp') {
+      showToast('Sandi salah! Akses reset modul ditolak.', 'error');
       return;
     }
     setLoading(true);
     try {
       await firebaseService.resetAllModulesToDefault();
       await loadModules();
-      showToast('Semua modul dikembalikan ke bawaan!', 'success');
+      showToast('Semua modul dikembalikan ke setelan default!', 'success');
     } catch (e) {
       showToast('Gagal mereset modul.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetAsDefault = async () => {
+    const pwd = window.prompt("TINDAKAN SENSITIF! Anda akan menetapkan seluruh susunan materi saat ini sebagai DEFAULT BARU.\n\nDi masa depan, menekan tombol 'Reset Bawaan' akan mengembalikan materi ke kondisi saat ini.\n\nUntuk melanjutkan, silakan masukkan kata sandi administrator (Sandi: gurusmp):");
+    if (pwd === null) return; // User cancelled the prompt
+    if (pwd.trim().toLowerCase() !== 'gurusmp') {
+      showToast('Sandi salah! Akses ditolak.', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      await firebaseService.saveCurrentAsDefault();
+      showToast('Berhasil menyimpan materi saat ini sebagai default baru!', 'success');
+    } catch (e) {
+      showToast('Gagal menetapkan default baru ke Cloud.', 'error');
     } finally {
       setLoading(false);
     }
@@ -374,9 +395,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ theme, onPreviewToggle, 
           </button>
 
           <button 
+            onClick={handleSetAsDefault}
+            className="px-4 py-2.5 bg-sky-500/10 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all"
+            title="Simpan susunan materi saat ini sebagai setelan default baru"
+          >
+            <Check size={14} />
+            <span>Jadikan Default</span>
+          </button>
+
+          <button 
             onClick={handleResetToDefault}
             className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-all"
-            title="Reset Modul 1-8 ke setelan pabrik"
+            title="Reset modul ke setelan default terakhir"
           >
             <RotateCcw size={14} />
             <span>Reset Bawaan</span>

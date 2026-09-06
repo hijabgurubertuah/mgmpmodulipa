@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Izinkan akses baca dan tulis pada koleksi modules agar admin bebas menambah dan mengedit materi
+    match /modules/{moduleId} {
+      allow read, write: if true;
+    }
+
+    // Izinkan akses baca dan tulis pada koleksi default_modules untuk mencadangkan materi default kustom
+    match /default_modules/{defaultId} {
+      allow read, write: if true;
+    }
+  }
+}
