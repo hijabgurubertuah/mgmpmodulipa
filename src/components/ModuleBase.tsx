@@ -12,6 +12,7 @@ import { Game2 } from './Game2';
 import { Game3 } from './Game3';
 import { MemoryGame } from './MemoryGame';
 import { ThemeButton } from './ThemeButton';
+import { firebaseService } from '../services/firebaseService';
 
 const PRAISES = [
   'Kamu Luar Biasa!',
@@ -109,7 +110,39 @@ export const ModuleBase: React.FC<ModuleBaseProps> = ({
   onRedirect,
   service 
 }) => {
-  const data = React.useMemo(() => service.getIntroduction(), [service]);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    firebaseService.getModule(moduleNumber)
+      .then(modData => {
+        if (active) {
+          setData(modData);
+        }
+      })
+      .catch(err => {
+        console.error("Error loading module from firebase:", err);
+        const localData = service.getIntroduction();
+        if (active) {
+          setData({
+            id: moduleNumber,
+            title: localData.title,
+            pages: localData.pages
+          });
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [moduleNumber, service]);
+
   const [activePage, setActivePage] = useState(0);
   const isScoreCheckPage = (moduleNumber === 2 || moduleNumber === 3 || moduleNumber === 4) && activePage === 0;
   const [gameLevel, setGameLevel] = useState(1);
@@ -125,6 +158,7 @@ export const ModuleBase: React.FC<ModuleBaseProps> = ({
   const quizRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!data || !data.pages) return;
     if ((moduleNumber === 2 || moduleNumber === 3 || moduleNumber === 4) && activePage === 0) {
       setQuizDelay(false);
       setCountdownSeconds(0);
@@ -148,7 +182,7 @@ export const ModuleBase: React.FC<ModuleBaseProps> = ({
       }, totalSeconds * 1000);
       return () => clearTimeout(timer);
     }
-  }, [activePage, moduleNumber, completedPages, openedPages, data.pages]);
+  }, [activePage, moduleNumber, completedPages, openedPages, data?.pages]);
 
   useEffect(() => {
     if (countdownSeconds > 0) {
@@ -234,6 +268,15 @@ export const ModuleBase: React.FC<ModuleBaseProps> = ({
   useEffect(() => {
     localStorage.setItem(`ipa_modul_${moduleNumber}_opened_pages`, JSON.stringify(openedPages));
   }, [openedPages, moduleNumber]);
+
+  if (loading || !data) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-12 text-white text-center space-y-4">
+        <div className="w-10 h-10 border-4 border-t-purple-400 border-white/20 rounded-full animate-spin"></div>
+        <p className="text-sm font-black tracking-widest uppercase">Memuat Materi Modul...</p>
+      </div>
+    );
+  }
 
   const handleQuiz = (optionId: string) => {
     setQuizSelected(optionId);

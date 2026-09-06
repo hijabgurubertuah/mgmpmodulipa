@@ -33,23 +33,37 @@ import { Home } from './components/Home';
 import { Hasil } from './components/Hasil';
 import { homeService } from './services/home';
 import { GardenDecorations } from './components/GardenDecorations';
-import { Modul1 } from './components/Modul1';
-import { Modul2 } from './components/Modul2';
-import { Modul3 } from './components/Modul3';
-import { Modul4 } from './components/Modul4';
-import { Modul5 } from './components/Modul5';
-import { Modul6 } from './components/Modul6';
-import { Modul7 } from './components/Modul7';
-import { Modul8 } from './components/Modul8';
+import { ModuleBase } from './components/ModuleBase';
+import { AdminPanel } from './components/AdminPanel';
+import { modul1Service } from './services/modul1';
+import { modul2Service } from './services/modul2';
+import { modul3Service } from './services/modul3';
+import { modul4Service } from './services/modul4';
+import { modul5Service } from './services/modul5';
+import { modul6Service } from './services/modul6';
+import { modul7Service } from './services/modul7';
+import { modul8Service } from './services/modul8';
 import { VideoPlayer } from './components/VideoPlayer';
 import { googleFormService } from './services/googleFormService';
 import { Rekap } from './components/Rekap';
+
+const localServices: Record<number, any> = {
+  1: modul1Service,
+  2: modul2Service,
+  3: modul3Service,
+  4: modul4Service,
+  5: modul5Service,
+  6: modul6Service,
+  7: modul7Service,
+  8: modul8Service,
+};
 
 const App = () => {
   // --- State ---
   const [username, setUsername] = useState<string>('');
   const [userClass, setUserClass] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAdminPreviewMode, setIsAdminPreviewMode] = useState<boolean>(false);
   const [currentView, setCurrentView] = useState<'home' | 'material' | 'quiz' | 'resume' | 'modul' | 'rekap'>('home');
   const [activeModule, setActiveModule] = useState<number>(1);
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
@@ -422,6 +436,17 @@ const App = () => {
     );
   }
 
+  // 1.5 Admin Panel CMS
+  if (isTeacher && userClass === 'ADMIN' && !isAdminPreviewMode) {
+    return (
+      <AdminPanel 
+        theme={theme}
+        onPreviewToggle={() => setIsAdminPreviewMode(true)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   // 2. Main App Layout
   return (
     <div 
@@ -718,6 +743,17 @@ const App = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 h-screen overflow-y-auto relative flex flex-col leaf-pattern">
+        {isAdminPreviewMode && (
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-2.5 text-[10px] font-black uppercase tracking-widest flex items-center justify-between shadow-2xl relative z-[100] border-b border-white/10 shrink-0">
+            <span>👁️ MODE PRATINJAU (PREVIEW) — login: GURUSMP</span>
+            <button 
+              onClick={() => setIsAdminPreviewMode(false)}
+              className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg text-[9px] font-black transition-all active:scale-95 cursor-pointer"
+            >
+              KEMBALI KE PANEL PENGATURAN
+            </button>
+          </div>
+        )}
         <GardenDecorations />
         
         {/* Content View */}
@@ -730,41 +766,21 @@ const App = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
               >
-                {activeModule === 1 && (
-                  <Modul1 
-                    theme={theme} 
-                    username={username}
-                    userClass={userClass}
-                    searchQuery={searchQuery}
-                    moduleNumber={activeModule}
-                    onRedirect={handleModuleRedirect}
-                    onComplete={() => {
+                <ModuleBase 
+                  theme={theme} 
+                  username={username}
+                  userClass={userClass}
+                  searchQuery={searchQuery}
+                  moduleNumber={activeModule}
+                  onRedirect={handleModuleRedirect}
+                  onComplete={() => {
+                    if (activeModule === 1) {
                       setProgress(prev => ({ ...prev, isIntroductionCompleted: true }));
-                      setCurrentView('home');
-                    }}
-                  />
-                )}
-                {activeModule === 2 && (
-                  <Modul2 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 3 && (
-                  <Modul3 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 4 && (
-                  <Modul4 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 5 && (
-                  <Modul5 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 6 && (
-                  <Modul6 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 7 && (
-                  <Modul7 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
-                {activeModule === 8 && (
-                  <Modul8 theme={theme} username={username} userClass={userClass} searchQuery={searchQuery} moduleNumber={activeModule} onRedirect={handleModuleRedirect} onComplete={() => setCurrentView('home')} />
-                )}
+                    }
+                    setCurrentView('home');
+                  }}
+                  service={localServices[activeModule] || modul1Service}
+                />
               </motion.div>
             )}
 
