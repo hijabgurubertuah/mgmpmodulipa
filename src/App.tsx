@@ -95,7 +95,7 @@ const App = () => {
     const savedUser = homeService.getUser();
     const savedClass = localStorage.getItem('ipa_user_class');
     const savedIsLoggedIn = localStorage.getItem('ipa_is_logged_in') === 'true';
-    const savedProgress = homeService.getProgress();
+    const savedProgress = homeService.getProgress(savedUser || undefined);
     const savedTheme = localStorage.getItem('ipa_theme');
     const savedView = localStorage.getItem('ipa_current_view');
     const savedActiveModule = localStorage.getItem('ipa_active_module');
@@ -106,6 +106,14 @@ const App = () => {
       if (savedClass) setUserClass(savedClass);
       if (savedIsLoggedIn) {
         setIsLoggedIn(true);
+      }
+
+      // Load user-specific unlocked modules
+      const savedUnlocked = localStorage.getItem(`ipa_unlocked_modules_${savedUser}`);
+      if (savedUnlocked) {
+        setUnlockedModules(new Set(JSON.parse(savedUnlocked)));
+      } else {
+        setUnlockedModules(new Set([1]));
       }
     }
     if (savedProgress) {
@@ -166,15 +174,10 @@ const App = () => {
   }, [selectedMaterialId]);
 
   useEffect(() => {
-    const savedUnlocked = localStorage.getItem('ipa_unlocked_modules');
-    if (savedUnlocked) {
-      setUnlockedModules(new Set(JSON.parse(savedUnlocked)));
+    if (username) {
+      localStorage.setItem(`ipa_unlocked_modules_${username}`, JSON.stringify(Array.from(unlockedModules)));
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('ipa_unlocked_modules', JSON.stringify(Array.from(unlockedModules)));
-  }, [unlockedModules]);
+  }, [unlockedModules, username]);
 
   // --- Derived Data ---
   const isTeacher = username.toLowerCase() === 'gurusmp';
@@ -201,12 +204,21 @@ const App = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() && userClass.trim()) {
-      const lastUser = localStorage.getItem('ipa_user');
       const currentUsername = username.trim();
 
-      // If user changed, reset progress
-      if (lastUser && lastUser !== currentUsername) {
-        setUnlockedModules(new Set());
+      // Load user-specific unlocked modules
+      const savedUnlocked = localStorage.getItem(`ipa_unlocked_modules_${currentUsername}`);
+      if (savedUnlocked) {
+        setUnlockedModules(new Set(JSON.parse(savedUnlocked)));
+      } else {
+        setUnlockedModules(new Set([1]));
+      }
+
+      // Load user-specific progress
+      const savedProgress = homeService.getProgress(currentUsername);
+      if (savedProgress) {
+        setProgress(savedProgress);
+      } else {
         setProgress({
           completedMaterials: [],
           isIntroductionCompleted: false,
@@ -214,13 +226,9 @@ const App = () => {
           quizHistory: [],
           username: currentUsername
         });
-        localStorage.removeItem('ipa_unlocked_modules');
-        localStorage.removeItem('ipa_progress');
-        localStorage.removeItem('ipa_perkenalan_completed_pages');
       }
 
       setIsLoggedIn(true);
-      setProgress(prev => ({ ...prev, username: currentUsername }));
       setCurrentView('home');
       
       // Save for next time

@@ -25,17 +25,28 @@ export const homeService = {
   },
 
   /**
-   * Gets saved progress from local storage.
+   * Gets saved progress from local storage (specific to the username if available).
    */
-  getProgress: () => {
-    const saved = localStorage.getItem('ipa_progress');
-    return saved ? JSON.parse(saved) : null;
+  getProgress: (username?: string) => {
+    const activeUser = username || localStorage.getItem('ipa_user') || '';
+    if (activeUser) {
+      const saved = localStorage.getItem(`ipa_progress_${activeUser}`);
+      if (saved) return JSON.parse(saved);
+    }
+    // Fallback to legacy generic key
+    const generic = localStorage.getItem('ipa_progress');
+    return generic ? JSON.parse(generic) : null;
   },
 
   /**
-   * Saves progress to local storage.
+   * Saves progress to local storage (specific to the username).
    */
-  saveProgress: (progress: any) => {
-    localStorage.setItem('ipa_progress', JSON.stringify(progress));
+  saveProgress: (progress: any, username?: string) => {
+    const activeUser = username || progress?.username || localStorage.getItem('ipa_user') || '';
+    if (activeUser) {
+      localStorage.setItem(`ipa_progress_${activeUser}`, JSON.stringify(progress));
+    } else {
+      localStorage.setItem('ipa_progress', JSON.stringify(progress));
+    }
   }
 };

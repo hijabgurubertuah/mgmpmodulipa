@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { GardenDecorations } from './GardenDecorations';
+import { studentService } from '../services/studentService';
 
 interface LoginProps {
   username: string;
@@ -11,10 +12,35 @@ interface LoginProps {
 }
 
 /**
- * Login component for the name input screen.
+ * Login component for the name selection dropdown screen.
  */
 export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, setUserClass, onLogin }) => {
-  const classes = ['8A', '8B', '8C', '8D', '8E', '8F', '8G', '8H', '8I'];
+  const [studentDatabase, setStudentDatabase] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Load student list from Google Sheets / Local on mount
+  useEffect(() => {
+    studentService.getStudents().then((data) => {
+      setStudentDatabase(data);
+      setLoading(false);
+    });
+  }, []);
+
+  // Ambil daftar kelas secara dinamis dari database siswa
+  const classes = Object.keys(studentDatabase).sort((a, b) => {
+    if (a === 'GURU') return 1;
+    if (b === 'GURU') return -1;
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  // Handle class selection
+  const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedClass = e.target.value;
+    setUserClass(selectedClass);
+    setUsername(''); // Reset nama yang terpilih saat ganti kelas
+  };
+
+  const studentNamesInClass = userClass ? (studentDatabase[userClass] || []) : [];
 
   return (
     <div id="app-wrapper" className="w-full h-screen overflow-hidden relative leaf-pattern" style={{ background: '#410052', fontFamily: "'Nunito', sans-serif" }}>
@@ -22,6 +48,7 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
       {/* Main content */}
       <main className="relative z-10 flex flex-col items-center justify-center h-full px-4 text-center">
         <div className="bg-black/20 backdrop-blur-md p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl max-w-xl w-full flex flex-col items-center">
+          
           {/* Title */}
           <div className="fade-up-d1 flex flex-col items-center gap-3 mb-4">
             <motion.div
@@ -55,45 +82,61 @@ export const Login: React.FC<LoginProps> = ({ username, setUsername, userClass, 
             </p>
           </div>
 
-          {/* Name & Class Input Section */}
+          {/* Name & Class Dropdown Section */}
           <div className="fade-up-d3 mt-4 w-full max-w-xs md:max-w-sm">
             <form onSubmit={onLogin} className="flex flex-col gap-3">
-              <input 
-                type="text" 
-                value={username}
-                onChange={(e) => {
-                  const val = e.target.value.toUpperCase();
-                  setUsername(val);
-                  if (val.toLowerCase() === 'gurusmp') {
-                    setUserClass('guru');
-                  } else if (userClass === 'guru') {
-                    setUserClass('');
-                  }
-                }}
-                placeholder="MASUKKAN NAMA ANDA" 
-                className="w-full px-5 py-3.5 rounded-full text-center text-base md:text-lg font-bold border-2 transition-all outline-none" 
-                style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
-                required
-              /> 
+              
+              {/* Dropdown 1: Pilih Kelas */}
+              <div className="relative">
+                <select
+                  value={userClass}
+                  onChange={handleClassChange}
+                  className="w-full px-6 py-4 rounded-full text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer"
+                  style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
+                  required
+                >
+                  <option value="" disabled>{loading ? "MEMUAT KELAS..." : "PILIH KELAS"}</option>
+                  {classes.map(c => (
+                    <option key={c} value={c}>{c === 'GURU' ? 'GURU' : `KELAS ${c}`}</option>
+                  ))}
+                </select>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-violet-800">
+                  ▼
+                </div>
+              </div>
 
-              <select
-                value={userClass}
-                onChange={(e) => setUserClass(e.target.value)}
-                className={`w-full px-6 py-4 rounded-full text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer ${username.toLowerCase() === 'gurusmp' ? 'opacity-80' : ''}`}
-                style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
-                required
-                disabled={username.toLowerCase() === 'gurusmp'}
-              >
-                <option value="" disabled>Pilih Kelas</option>
-                {userClass === 'guru' && <option value="guru">Guru</option>}
-                {classes.map(c => (
-                  <option key={c} value={c}>Kelas {c}</option>
-                ))}
-              </select>
+              {/* Dropdown 2: Pilih Nama Siswa */}
+              <div className="relative">
+                <select
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-6 py-4 rounded-full text-center text-lg font-semibold border-2 transition-all outline-none appearance-none cursor-pointer disabled:opacity-60"
+                  style={{ background: 'rgba(255,255,255,0.95)', borderColor: '#d8b4fe', color: '#410052' }}
+                  required
+                  disabled={!userClass || loading}
+                >
+                  <option value="" disabled>
+                    {!userClass 
+                      ? "PILIH KELAS TERLEBIH DAHULU" 
+                      : loading 
+                        ? "MEMUAT DAFTAR NAMA..." 
+                        : "PILIH NAMA ANDA"
+                    }
+                  </option>
+                  {studentNamesInClass.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-violet-800">
+                  ▼
+                </div>
+              </div>
 
+              {/* Tombol MASUK */}
               <button 
                 type="submit" 
-                className="btn-garden pulse-glow inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full text-xl font-bold tracking-wide mt-2" 
+                disabled={!username || !userClass}
+                className="btn-garden pulse-glow inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full text-xl font-bold tracking-wide mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ background: 'linear-gradient(135deg, #a855f7, #7e22ce)', color: '#fff', border: 'none', cursor: 'pointer' }}
               > 
                 <span>MASUK</span> 
